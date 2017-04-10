@@ -93,6 +93,10 @@ public abstract class AbstractMybatisGeneratorInit {
 		fullyQualifiedTableNames = new HashSet<>();
 	    shellCallback = new DefaultShellCallback(true);
 	    contextIds = new HashSet<>();
+	    PluginConfiguration serializablePluginConfiguration = new PluginConfiguration();
+	    serializablePluginConfiguration.addProperty("type", "org.mybatis.generator.plugins.SerializablePlugin");
+        serializablePluginConfiguration.setConfigurationType("org.mybatis.generator.plugins.SerializablePlugin");
+        context.addPluginConfiguration(serializablePluginConfiguration);
 	}
 	
 	public void GeneratorTarget(String tableName,String entryName,boolean offset,boolean anno,boolean jpa,boolean example) throws InvalidConfigurationException, SQLException, IOException, InterruptedException{
@@ -136,10 +140,6 @@ public abstract class AbstractMybatisGeneratorInit {
 	    context.setJavaModelGeneratorConfiguration(modelConfig);
 	    context.setSqlMapGeneratorConfiguration(mapperConfig);
 	    context.setJavaClientGeneratorConfiguration(daoConfig);
-	    PluginConfiguration serializablePluginConfiguration = new PluginConfiguration();
-	    serializablePluginConfiguration.addProperty("type", "org.mybatis.generator.plugins.SerializablePlugin");
-        serializablePluginConfiguration.setConfigurationType("org.mybatis.generator.plugins.SerializablePlugin");
-        context.addPluginConfiguration(serializablePluginConfiguration);
         if(offset){
         	PluginConfiguration pluginConfiguration = new PluginConfiguration();
         	pluginConfiguration.addProperty("type", "com.mybatisgenerator.util.MySQLLimitPlugin");
