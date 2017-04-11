@@ -35,12 +35,6 @@ public class DefaultMybatisGeneratorInit extends AbstractMybatisGeneratorInit {
 	}
 
 	@Override
-	public void setConnectLibPath(String path) {
-		// TODO Auto-generated method stub
-		config.addClasspathEntry(path);
-	}
-
-	@Override
 	public void setJdbcConfigDriver(String jdbcConfigDriverClass) {
 		// TODO Auto-generated method stub
 		jdbcConfig.setDriverClass(jdbcConfigDriverClass);
@@ -74,6 +68,12 @@ public class DefaultMybatisGeneratorInit extends AbstractMybatisGeneratorInit {
 	public void setMapperXmlPath(String path) {
 		// TODO Auto-generated method stub
 		mapperXmlPath = path;
+	}
+
+	@Override
+	public void setConnectionLibPath(String path) {
+		// TODO Auto-generated method stub
+		connectionLibPath = path;
 	}
 
 

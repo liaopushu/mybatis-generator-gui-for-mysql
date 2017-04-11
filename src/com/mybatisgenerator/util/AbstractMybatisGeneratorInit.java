@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mybatis.generator.api.MyBatisGenerator;
+import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.api.ProgressCallback;
 import org.mybatis.generator.api.ShellCallback;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
@@ -30,10 +31,12 @@ public abstract class AbstractMybatisGeneratorInit {
     static ProgressCallback progressCallback;
     static Context context;
     static Configuration config;
+    static String connectionLibPath;
     static Set<String> contextIds;
     static Set<String> fullyQualifiedTableNames;
     static ShellCallback shellCallback;
     static JDBCConnectionConfiguration jdbcConfig;
+    static PluginConfiguration serializablePluginConfiguration;
     static String projectPath;
     static String mapperXmlPath;
     static String packgetPath;
@@ -45,8 +48,6 @@ public abstract class AbstractMybatisGeneratorInit {
 	abstract public void setUserId(String userId);
 	
 	abstract public void setPassword(String password);
-	
-	abstract public void setConnectLibPath(String path);
 	
 	abstract public void setJdbcConfigDriver(String jdbcConfigDriverClass);
 	
@@ -60,10 +61,12 @@ public abstract class AbstractMybatisGeneratorInit {
 	
 	abstract public void setMapperXmlPath(String path);
 	
+	abstract public void setConnectionLibPath(String path);
+	
 	public void setBaseGeneratorConfig(Map<String,String> map){
 		if(map.size()>0){
 			setConnectionUrl(map.get(DriverInformationKey.connectionUrl.toString()));
-			setConnectLibPath(map.get(DriverInformationKey.connectorLibPath.toString()));
+			setConnectionLibPath(map.get(DriverInformationKey.connectorLibPath.toString()));
 			setJdbcConfigDriver(map.get(DriverInformationKey.jdbcConfigDriverClass.toString()));
 			setUserId(map.get(DriverInformationKey.userId.toString()));
 			setPassword(map.get(DriverInformationKey.password.toString()));
@@ -72,9 +75,6 @@ public abstract class AbstractMybatisGeneratorInit {
 	
 	public AbstractMybatisGeneratorInit(Map<String,Map<String,String>> map,String databaseType){
 		Map<String,String> databaseInfo;
-		config = new Configuration();
-		context = new Context(ModelType.CONDITIONAL);
-		config.addContext(context);
 		jdbcConfig = new JDBCConnectionConfiguration();
 		fullyQualifiedTableNames = new HashSet<>();
 	    shellCallback = new DefaultShellCallback(true);
@@ -86,23 +86,16 @@ public abstract class AbstractMybatisGeneratorInit {
 	}
 	
 	public AbstractMybatisGeneratorInit(){
-		config = new Configuration();
-		context = new Context(ModelType.CONDITIONAL);
-		config.addContext(context);
 		jdbcConfig = new JDBCConnectionConfiguration();
 		fullyQualifiedTableNames = new HashSet<>();
 	    shellCallback = new DefaultShellCallback(true);
 	    contextIds = new HashSet<>();
-	    PluginConfiguration serializablePluginConfiguration = new PluginConfiguration();
+	    serializablePluginConfiguration = new PluginConfiguration();
 	    serializablePluginConfiguration.addProperty("type", "org.mybatis.generator.plugins.SerializablePlugin");
         serializablePluginConfiguration.setConfigurationType("org.mybatis.generator.plugins.SerializablePlugin");
-        context.addPluginConfiguration(serializablePluginConfiguration);
 	}
 	
 	public void GeneratorTarget(String tableName,String entryName,boolean offset,boolean anno,boolean jpa,boolean example) throws InvalidConfigurationException, SQLException, IOException, InterruptedException{
-		TableConfiguration tableConfig = new TableConfiguration(context);
-		tableConfig.setTableName(tableName);
-		tableConfig.setDomainObjectName(entryName);
 		JavaModelGeneratorConfiguration modelConfig = new JavaModelGeneratorConfiguration();
 		if(null!=projectPath&&null!=packgetPath){
 			modelConfig.setTargetPackage(packgetPath);
@@ -126,13 +119,26 @@ public abstract class AbstractMybatisGeneratorInit {
 		if(jpa){
 			commentConfig.addProperty("annotations", "true");
 		}
+        if(offset){
+        	context = new Context(ModelType.CONDITIONAL);
+        	PluginConfiguration pluginConfiguration = new PluginConfiguration();
+        	pluginConfiguration.addProperty("type", "com.mybatisgenerator.util.MySQLLimitPlugin");
+        	pluginConfiguration.setConfigurationType("com.mybatisgenerator.util.MySQLLimitPlugin");
+        	context.addPluginConfiguration(pluginConfiguration);
+        }else{
+        	context = new Context(ModelType.CONDITIONAL);
+        }
+        TableConfiguration tableConfig = new TableConfiguration(context);
+		tableConfig.setTableName(tableName);
+		tableConfig.setDomainObjectName(entryName);
 		if(!example){
 			tableConfig.setCountByExampleStatementEnabled(false);
 			tableConfig.setDeleteByExampleStatementEnabled(false);
 			tableConfig.setSelectByExampleStatementEnabled(false);
 			tableConfig.setUpdateByExampleStatementEnabled(false);
 		}
-		context.setCommentGeneratorConfiguration(commentConfig);
+        context.addPluginConfiguration(serializablePluginConfiguration);
+        context.setCommentGeneratorConfiguration(commentConfig);
 	    context.setId("myid");
 	    context.setTargetRuntime("MyBatis3");
 	    context.addTableConfiguration(tableConfig);
@@ -140,13 +146,10 @@ public abstract class AbstractMybatisGeneratorInit {
 	    context.setJavaModelGeneratorConfiguration(modelConfig);
 	    context.setSqlMapGeneratorConfiguration(mapperConfig);
 	    context.setJavaClientGeneratorConfiguration(daoConfig);
-        if(offset){
-        	PluginConfiguration pluginConfiguration = new PluginConfiguration();
-        	pluginConfiguration.addProperty("type", "com.mybatisgenerator.util.MySQLLimitPlugin");
-        	pluginConfiguration.setConfigurationType("com.mybatisgenerator.util.MySQLLimitPlugin");
-        	context.addPluginConfiguration(pluginConfiguration);
-        }
         context.setTargetRuntime("MyBatis3");
+        config = new Configuration();
+        config.addClasspathEntry(connectionLibPath);
+        config.addContext(context);
         List<String> warnings = new ArrayList<>();
         myBatisGenerator = new MyBatisGenerator(config, shellCallback, warnings);
         myBatisGenerator.generate(progressCallback, contextIds, fullyQualifiedTableNames);
